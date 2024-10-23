@@ -8,12 +8,7 @@ using namespace cv;
 
 int main(int argc, char** argv )
 {
-    if ( argc != 3 )
-    {
-        printf("usage: DisplayImage.out <Image_Path>\n");
-        return -1;
-    }
-    Mat image;
+        Mat image;
 
     image = imread( "Images/Va.jpeg", 1 );
     if ( !image.data )
@@ -91,36 +86,27 @@ int main(int argc, char** argv )
     }
 
     // 使用DBSCAN进行集群
-    /*
-    // 使用轮廓中心
-    cv::Mat centersMat(centers.size(), 1, CV_32FC2, centers.data());
-    std::vector<int> labels;
     
-    cv::ml::DBSCAN dbscan(std::stoi(argv[1]), std::stoi(argv[2])); // 设置epsilon和minPoints
-    dbscan.fit(centersMat);
+    // 使用轮廓中心(错误)
+    /*
+    cv::Mat centersMat(centers.size(), 1, CV_32FC2, centers.data());
+        
+    cv::ml::DBSCAN dbscan(65, 5); // 设置epsilon和minPoints
+    dbscan.fit(centers);
+*/
 
-    // 获取标签
-    labels = dbscan.getLabels();
-
-    // 在图像上绘制每个群体的包围矩形
-    for (int i = 0; i < centers.size(); i++) {
-        if (labels[i] != -1) { // 只绘制属于某个集群的中心
-            cv::Rect boundingBox = cv::boundingRect(std::vector<cv::Point>(centers.begin(), centers.end()));
-            cv::rectangle(image, boundingBox, cv::Scalar(255, 0, 0), 2);
-        }
-    }
-    */
-
-   // 使用矩形中心
+   // 使用轮廓外接矩形中心
     cv::Mat centersMat(Box_centers.size(), 1, CV_32FC2, Box_centers.data());
-    std::vector<int> labels;
     
     cv::ml::DBSCAN dbscan(65, 5); // 设置epsilon和minPoints,最低35 2
-    dbscan.fit(Box_centers);
+    dbscan.fit(centersMat);
+ 
 
     // 获取标签
-    labels = dbscan.getLabels();
+    std::vector<int> labels = dbscan.getLabels();
     std::cout << "labels:" << labels.size() << std::endl;
+   
+   
     // 绘制每个聚类的外接矩形
     std::unordered_map<int, std::vector<cv::Point2f>> clusters;
     for (size_t i = 0; i < labels.size(); i++) {
@@ -143,6 +129,7 @@ int main(int argc, char** argv )
     
 
 
+    cv::waitKey(0);
     cv::waitKey(0);
     return 0;
 }
