@@ -5,11 +5,29 @@ set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 
 project(OpenCVTest)
 
+# opencv include
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+#include_directories(${OpenCV_INCLUDE_DIRS} inc)
 
-# 添加你的源文件
-add_executable(DisplayImage DisplayImage.cpp)
+# My include
+# 添加源文件
+set(SOURCES
+    DisplayImage.cpp        
+    src/image_pro.cpp
+)
+
+# 添加头文件
+set(HEADERS
+    inc/image_pro.hpp
+)
+
+# 添加源文件
+add_executable(DisplayImage ${SOURCES})
 
 # 链接OpenCV库
 target_link_libraries(DisplayImage ${OpenCV_LIBS})
+
+target_include_directories(DisplayImage 
+    PUBLIC inc                    
+    PUBLIC ${OpenCV_INCLUDE_DIRS}
+)
