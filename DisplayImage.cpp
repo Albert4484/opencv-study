@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string>
+#include <algorithm>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
 #include "image_pro.hpp"
@@ -98,28 +99,33 @@ int main(int argc, char** argv )
    // 使用轮廓外接矩形中心
     cv::Mat centersMat(Box_centers.size(), 1, CV_32FC2, Box_centers.data());
     
-    cv::ml::DBSCAN dbscan(65, 5); // 设置epsilon和minPoints,最低35 2
+    cv::ml::DBSCAN dbscan(65, 10); // 设置epsilon和minPoints,最低35 2
     dbscan.fit(centersMat);
  
 
     // 获取标签
     std::vector<int> labels = dbscan.getLabels();
-    std::cout << "labels:" << labels.size() << std::endl;
-   
-   
+    int max_labels = -1;
+    
     // 绘制每个聚类的外接矩形
     std::unordered_map<int, std::vector<cv::Point2f>> clusters;
     for (size_t i = 0; i < labels.size(); i++) {
         if (labels[i] != -1) {
             clusters[labels[i]].push_back(Box_centers[i]);
+            if (labels[i] > max_labels) max_labels = labels[i];
         }
     }
+
+    std::cout << "labels类数量：" << max_labels << std::endl;
+    std::cout << "labels点数量：" << labels.size() << std::endl;
 
     for (const auto& cluster : clusters) {
         const auto& points = cluster.second;
         if (!points.empty()) {
             cv::Rect boundingBox = cv::boundingRect(points);
             cv::rectangle(image, boundingBox, cv::Scalar(255, 0, 0), 2); // 绘制外接矩形
+            std::cout << "矩形中心位置x,y：" << boundingBox.x + boundingBox.width / 2 << "," << boundingBox.y +  boundingBox.height / 2 << std::endl;
+            std::cout << "矩形宽，高：" << boundingBox.width << "," << boundingBox.height << std::endl << std::endl;
         }
     }
 
@@ -127,9 +133,7 @@ int main(int argc, char** argv )
     // 显示结果
     cv::imshow("Original Image with Clusters", image);
     
-
-
     cv::waitKey(0);
-    cv::waitKey(0);
+    cv::waitKey(0);//方便按截屏
     return 0;
 }
