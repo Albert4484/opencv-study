@@ -9,9 +9,55 @@ using namespace cv;
 
 int main(int argc, char** argv )
 {
-        Mat image;
 
-    image = imread( "Images/Va.jpeg", 1 );
+    std::string inputVideoPath = "Video/video2.mp4"; // 输入视频路径
+    std::string outputVideoPath = "Video/output_video.mp4"; // 输出 MP4 视频路径
+    if (argc == 2) {
+        inputVideoPath = argv[1]; // 输入视频路径
+        std::cout << "视频路径：" << argv[1] << std::endl;
+    }
+
+    // 打开输入视频
+    cv::VideoCapture cap(inputVideoPath);
+    if (!cap.isOpened()) {
+        std::cerr << "无法打开视频文件!" << std::endl;
+        return -1;
+    }
+
+    // 获取视频属性
+    int fps = static_cast<int>(cap.get(cv::CAP_PROP_FPS));
+    int frameWidth = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int frameHeight = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+
+    // 创建视频写入对象，使用适合 MP4 的编码
+    cv::VideoWriter writer(outputVideoPath, cv::VideoWriter::fourcc('M', 'P', '4', 'V'), fps, cv::Size(frameWidth, frameHeight));
+
+    cv::Mat frame;
+    while (true) {
+        cap >> frame; // 读取一帧
+        if (frame.empty()) break; // 检查是否到达视频末尾
+
+        // 在这里处理每一帧，例如转换为灰度图像
+        cv::Mat processedFrame = ipro::Get_Presons(frame);
+        
+        // 写入处理后的帧
+        if (processedFrame.data)
+            writer.write(processedFrame);
+    }
+
+    // 释放资源
+    cap.release();
+    writer.release();
+    std::cout << "视频处理完成，输出视频已保存。" << std::endl;
+
+    return 0;
+
+// 图处理    
+    Mat image;
+    if (argc != 2)
+        image = imread( "Images/Va4.jpg", 1 );
+    else image = imread(argv[1], 1);
+
     if ( !image.data )
     {
         printf("No image data \n");
@@ -99,7 +145,7 @@ int main(int argc, char** argv )
    // 使用轮廓外接矩形中心
     cv::Mat centersMat(Box_centers.size(), 1, CV_32FC2, Box_centers.data());
     
-    cv::ml::DBSCAN dbscan(65, 10); // 设置epsilon和minPoints,最低35 2
+    cv::ml::DBSCAN dbscan(65, 3); // 设置epsilon和minPoints,最低35 2
     dbscan.fit(centersMat);
  
 

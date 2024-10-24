@@ -76,6 +76,8 @@ private:
 namespace ipro{
     //
 cv::Mat Image_Mask(cv::Mat hsv_image, cv::Scalar lower, cv::Scalar upper);
+cv::Mat Get_Presons(cv::Mat fram);
+cv::Mat gradient_sobel(cv::Mat image);
 
 
 }
