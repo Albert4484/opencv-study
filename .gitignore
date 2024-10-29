@@ -31,7 +31,12 @@
 *.out
 *.app
 
+*.jpg
+*.png
+*.mp4
+
 
 build/
-Images/
+FrameWork/
 Video/
+Images/

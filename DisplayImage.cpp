@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <string>
 #include <algorithm>
+#include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ml.hpp>
 #include "image_pro.hpp"
+#include "yolo.hpp"
+#include "inference.h"
 
 using namespace cv;
 
 int main(int argc, char** argv )
 {
+    std::cout << "OpenCV version: " << CV_VERSION << std::endl;
 
     std::string inputVideoPath = "Video/video2.mp4"; // 输入视频路径
     std::string outputVideoPath = "Video/output_video.mp4"; // 输出 MP4 视频路径
@@ -33,16 +37,83 @@ int main(int argc, char** argv )
     cv::VideoWriter writer(outputVideoPath, cv::VideoWriter::fourcc('M', 'P', '4', 'V'), fps, cv::Size(frameWidth, frameHeight));
 
     cv::Mat frame;
+    int num_save = 0;
+
+    // 创建yolo对象
+   
+    bool runOnGPU = false;
+
+    // Note that in this example the classes are hard-coded and 'classes.txt' is a place holder.
+    Inference inf("yolo_weight/yolov10b_vlr0.onnx", cv::Size(640, 640), "val_classes.txt", runOnGPU);
+    
+    cv::Mat bus_image2  = imread("Images/bus.jpg", 1);
+    cv::Mat val_image  = imread("Images/red_preson2.png", 1);
+
+    std::vector<Detection> output = inf.runInference(val_image);
+
+    inf.showDetectionOnImage(val_image, output);
+
+    
+    cv::imshow("Inference", val_image);
+
+    cv::waitKey();
+
+    
+    /************************************ */
+    
+    YOLO yolov10s_model("yolo_weight/yolov10s.onnx");
+    //YOLO yolov10s_model("yolo_weight/yolov10b_vlr.onnx");
+    yolov10s_model.set_confidence(0.25);
+
+    //cv::Mat test_image = imread("Images/000000366530.jpg", 1);
+    cv::Mat bus_image  = imread("Images/bus.jpg", 1);
+    //cv::Mat val_image  = imread("Images/red_preson2.png", 1);
+
+    cv::Mat test_image_res = yolov10s_model.inferAndGetResult(bus_image);
+    cv::imshow("yolo_test", test_image_res);
+    
+    
+    
+
+    cv::waitKey();
+
     while (true) {
         cap >> frame; // 读取一帧
         if (frame.empty()) break; // 检查是否到达视频末尾
 
-        // 在这里处理每一帧，例如转换为灰度图像
-        cv::Mat processedFrame = ipro::Get_Presons(frame);
-        
+        // 在这里处理每一帧
+        //传统视觉
+        //cv::Mat processedFrame = ipro::Get_Presons(frame);
+        //cv::imshow("frame", processedFrame);
+        //yolo
+        //cv::Mat processedFrame_yolo = yolov10s_model.inferAndGetResult(frame);
+        //cv::imshow("yolo", processedFrame_yolo);
+        //Inference
+        std::vector<Detection> output = inf.runInference(frame);
+        cv::Mat processedFrame_yolo = inf.showDetectionOnImage(frame, output);
+        cv::imshow("Inference", processedFrame_yolo);
+
+        int keydata = cv::waitKey(1);
+        if (keydata == 115) {//s键
+            // 保存图像
+            std::cout << keydata << "被按下！" << std::endl;
+            std::string outputFileName = "FrameImages/" + std::filesystem::path(inputVideoPath).filename().string() + "_frame_" + std::to_string(num_save++) + ".jpg";
+            
+
+            if (!cv::imwrite(outputFileName, frame)) {
+                std::cerr << "保存图像失败!" << std::endl;
+                return -1;
+            }
+
+            std::cout << "图像保存成功! 松开按键2s后自动继续" << std::endl;
+            
+            //while (cv::waitKey(1) == -1);
+            cv::waitKey(2000);
+        }
+        else if (keydata == 'c') break;
         // 写入处理后的帧
-        if (processedFrame.data)
-            writer.write(processedFrame);
+        if (processedFrame_yolo.data)
+            writer.write(processedFrame_yolo);
     }
 
     // 释放资源

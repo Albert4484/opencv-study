@@ -1,47 +1,64 @@
 #include "image_pro.hpp"
 
-#define Lower_Mask cv::Scalar(27,  37, 160)
-#define Upper_Mask cv::Scalar(32, 191, 253)
+/***** config ******/
+//color
+#define    Mask_YellowGreen 1
+#define    Mask_Red 2
+#define    Mask_Pruple 3
+
+
+#define Mask_Color Mask_YellowGreen
+
+#if (Mask_Color == Mask_YellowGreen)
+#define Lower_Mask cv::Scalar(20, 124, 144)
+#define Upper_Mask cv::Scalar(22, 155, 254)
+#elif (Mask_Color == Mask_Red)
+#define Lower_Mask cv::Scalar(173, 117, 91)   // 示例值
+#define Upper_Mask cv::Scalar(3, 119, 245)  // 示例值
+#elif (Mask_Color == Mask_Pruple)
+#define Lower_Mask cv::Scalar(127, 83, 94) // 示例值
+#define Upper_Mask cv::Scalar(154, 146, 184) // 示例值
+#else
+#define Lower_Mask cv::Scalar(0, 0, 0) // 默认值
+#define Upper_Mask cv::Scalar(180, 255, 255) // 默认值
+#endif
+
+// oc_size
+#define OC_SIZE 1
+#define OC_CHOISE cv::MORPH_OPEN
 
 
 namespace ipro{
 cv::Mat Image_Mask(cv::Mat image, cv::Scalar lower, cv::Scalar upper)
 {
-    // 定义颜色范围（这里以红色为例）
-    // 红色的 HSV 范围
-    /*
-    cv::Scalar lower_red1(0, 100, 100); // 红色下界
-    cv::Scalar upper_red1(10, 255, 255); // 红色上界
-    cv::Scalar lower_red2(160, 100, 100); // 红色下界
-    cv::Scalar upper_red2(180, 255, 255); // 红色上界
-
-    //黄绿色
-    cv::Scalar lower_yellow_green(15, 100, 100); // 黄绿色下界
-    cv::Scalar upper_yellow_green(30, 255, 255); // 黄绿色上界
-    */
-
-    // 创建掩膜
-    //cv::Mat mask1, mask2, mask3, mask;
-    //cv::inRange(hsv, lower_red1, upper_red1, mask1);
-    //cv::inRange(hsv, lower_red2, upper_red2, mask2);
-    //cv::inRange(hsv, lower_yellow_green, upper_yellow_green, mask3);
-    // 合并掩膜
-    //mask = mask3;
-
     // 转换到 HSV 颜色空间
     cv::Mat hsv_image;
     cv::cvtColor(image, hsv_image, cv::COLOR_BGR2HSV);
 
     cv::Mat mask;
-    cv::inRange(hsv_image, lower, upper, mask);
+    if (lower[0] > upper[0]) {
+        cv::Scalar l1(lower[0], lower[1], lower[2]);
+        cv::Scalar u1(180, upper[1], upper[2]);
+        cv::Scalar l2(0, lower[1], lower[2]);
+        cv::Scalar u2(upper[0], upper[1], upper[2]);
+        cv::Mat mask1, mask2;
+
+        cv::inRange(hsv_image, l1, u1, mask1);
+        cv::inRange(hsv_image, l2, u2, mask2);
+
+        mask = mask1 | mask2;
+        
+    }
+    else cv::inRange(hsv_image, lower, upper, mask);
 
     // 提取红色区域
     cv::Mat result;
     cv::bitwise_and(image, image, result, mask);
 
     // 显示结果
-    cv::imshow("Original Image", image);
-    cv::imshow("Mask", mask);
+    //cv::imshow("Original Image", image);
+    //cv::imshow("Mask", mask);
+    cv::imshow("Mask open", mask);
     cv::imshow("Extracted Color", result);
 
     return result;
@@ -55,7 +72,7 @@ cv::Mat Get_Presons(cv::Mat fram)
         return cv::Mat();
     }
 
-    cv::Mat image = fram;
+    cv::Mat image = fram.clone();
     int width = image.cols;
     int height = image.rows;
     //去掉右上角
@@ -87,9 +104,23 @@ cv::Mat Get_Presons(cv::Mat fram)
     // 梯度算法
     cv::Mat gradient_img = gradient_sobel(gray);
 
+
+    // 这里执行开闭运算
+    int size_MORPH = OC_SIZE;
+    cv::Mat res_ol;
+    // 选择结构元素
+    if (size_MORPH != 0) {
+        cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(size_MORPH, size_MORPH)); // 矩形结构元素
+
+        // 执行开/闭运算
+        cv::morphologyEx(gradient_img, res_ol, OC_CHOISE, element);
+    }
+    else res_ol = gradient_img;
+
+
     // 边缘检测
     cv::Mat edges;
-    cv::Canny(gradient_img, edges, 100, 200);
+    cv::Canny(res_ol, edges, 100, 200);
 
     // 查找轮廓
     std::vector<std::vector<cv::Point>> contours;
@@ -98,7 +129,7 @@ cv::Mat Get_Presons(cv::Mat fram)
     // 在原图上绘制轮廓
     cv::Mat contoursImg = image.clone();
     cv::drawContours(contoursImg, contours, -1, cv::Scalar(0, 0, 255), 2);
-    double minArea = 4.0; // 最小轮廓面积
+    double minArea = 0.0; // 最小轮廓面积
     double maxArea = 1000.0; // 最小轮廓面积
 
 

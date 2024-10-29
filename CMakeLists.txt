@@ -14,11 +14,15 @@ find_package(OpenCV REQUIRED)
 set(SOURCES
     DisplayImage.cpp        
     src/image_pro.cpp
+    src/yolo.cpp
+    src/inference.cpp
 )
 
 # 添加头文件
 set(HEADERS
     inc/image_pro.hpp
+    inc/yolo.hpps
+    inc/inference.h
 )
 
 # 添加源文件
